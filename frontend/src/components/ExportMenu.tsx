@@ -22,8 +22,8 @@ export default function ExportMenu<T>({ filename, title, rows, columns, formats 
   };
 
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <button className="secondary" onClick={() => setOpen(v => !v)} disabled={disabled} style={{ width: 'auto' }} title={disabled ? 'Sem dados para exportar' : ''}>
+    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+      <button className="secondary" onClick={() => setOpen(v => !v)} disabled={disabled} style={{ width: 'auto', verticalAlign: 'middle' }} title={disabled ? 'Sem dados para exportar' : ''}>
         ⬇ {label}
       </button>
       {open && (

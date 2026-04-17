@@ -5,8 +5,8 @@ import PageHead from '../components/PageHead';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
+import { useOptions } from '../hooks/useOptions';
 
-const CATS = ['Moradia','Alimentação','Transporte','Saúde','Educação','Lazer','Vestuário','Assinaturas','Vícios','Pets','Filhos','Outros'];
 const TYPES = [['essencial','Essencial (50%)'],['desejo','Desejo (30%)'],['investimento','Investimento (20%)']] as const;
 const FREQ = [['monthly','Mensal'],['annual','Anual'],['one-time','Única'],['installments','Parcelada (cartão Nx)']] as const;
 
@@ -37,6 +37,7 @@ function valueIn(e:Expense): number {
 }
 
 export default function Expenses() {
+  const CATS = useOptions('expense.cat');
   const [items, setItems] = useState<Expense[]>([]);
   const [payments, setPayments] = useState<Record<string, boolean>>({});
   const [month, setMonth] = useState(todayYM());

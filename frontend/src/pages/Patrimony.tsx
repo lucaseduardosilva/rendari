@@ -5,14 +5,14 @@ import PageHead from '../components/PageHead';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
-
-const ASSET_CATS = ['Imóvel','Veículo','Conta Corrente','Poupança','Renda Fixa','Ações / FIIs','Investimentos no Exterior','Cripto','Previdência','Outros'];
-const DEBT_CATS = ['Cartão de Crédito','Empréstimo Pessoal','Financiamento Imobiliário','Financiamento Veículo','Cheque Especial','Crédito Consignado','Outros'];
+import { useOptions } from '../hooks/useOptions';
 
 interface Asset { id:string; name:string; cat:string; value:number|string; }
 interface Debt { id:string; name:string; cat:string; value:number|string; rate:number|string; }
 
 export default function Patrimony() {
+  const ASSET_CATS = useOptions('asset.cat');
+  const DEBT_CATS = useOptions('debt.cat');
   const a = useCrud<Asset>('/finance/assets');
   const d = useCrud<Debt>('/finance/debts');
   const [openA, setOpenA] = useState(false);

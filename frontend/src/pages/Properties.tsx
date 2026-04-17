@@ -5,11 +5,13 @@ import PageHead from '../components/PageHead';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
+import { useOptions } from '../hooks/useOptions';
 
 interface Property { id:string; name:string; type:string; purpose:string; addr?:string; area?:number|string; rooms?:number; buy:number|string; current:number|string; debt:number|string; rent:number|string; }
 const PURPOSE = [['residence','Moradia'],['rental','Aluguel'],['sale','Venda futura'],['vacation','Veraneio'],['commercial','Comercial']] as const;
 
 export default function Properties() {
+  const TYPES = useOptions('property.type');
   const c = useCrud<Property>('/finance/properties');
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Property|null>(null);
@@ -86,7 +88,7 @@ export default function Properties() {
           <div className="row">
             <div className="form-group"><label>Tipo</label>
               <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
-                <option>Apartamento</option><option>Casa</option><option>Sobrado</option><option>Terreno</option><option>Sala Comercial</option><option>Galpão</option><option>Rural</option><option>Cobertura</option>
+                {TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div className="form-group"><label>Finalidade</label>

@@ -6,6 +6,7 @@ import { useWhitelabel } from '../stores/whitelabel';
 import { usePlan } from '../hooks/usePlan';
 import { api } from '../lib/api';
 import ImpersonateBanner from './ImpersonateBanner';
+import { useCustomOptions } from '../stores/customOptions';
 
 interface NavItem { to: string; label: string; }
 interface NavGroup { title: string; items: NavItem[]; show?: 'PF' | 'PJ' | 'ALL' | 'ADMIN'; }
@@ -46,6 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
     { to: '/where', label: 'Onde Investir' },
     { to: '/taxes', label: 'Impostos' },
     { to: '/glossary', label: 'Glossário' },
+    { to: '/custom-fields', label: 'Campos Personalizados' },
   ]},
   { title: 'Administração', show: 'ADMIN', items: [
     { to: '/admin', label: 'Painel Admin' },
@@ -152,6 +154,9 @@ export default function Layout() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               )}
             </button>
+            <button className="icon-btn" onClick={() => window.open('/help', '_blank', 'noopener')} title="Abrir Central de Ajuda em nova aba">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </button>
             <div className="user-menu">
               <button className="icon-btn" onClick={() => setUserMenu((v) => !v)} aria-label="Perfil">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
@@ -169,10 +174,10 @@ export default function Layout() {
                         {isLifetime ? ' · Lifetime ∞' : plan ? ` · ${plan.name}` : ''}
                       </span>
                     </div>
-                    <NavLink to="/settings" onClick={() => setUserMenu(false)}>⚙ Configurações</NavLink>
-                    <NavLink to="/upgrade" onClick={() => setUserMenu(false)}>⭐ Planos / Upgrade</NavLink>
-                    {isAdmin && <NavLink to="/admin" onClick={() => setUserMenu(false)}>🛡 Admin</NavLink>}
-                    <button onClick={async () => { await api.post('/auth/logout').catch(()=>{}); resetWl(); logout(); nav('/login'); }}>↪ Sair</button>
+                    <NavLink to="/settings" onClick={() => setUserMenu(false)}>Configurações</NavLink>
+                    <NavLink to="/upgrade" onClick={() => setUserMenu(false)}>Planos / Upgrade</NavLink>
+                    {isAdmin && <NavLink to="/admin" onClick={() => setUserMenu(false)}>Admin</NavLink>}
+                    <button onClick={async () => { await api.post('/auth/logout').catch(()=>{}); resetWl(); useCustomOptions.getState().reset(); logout(); nav('/login'); }}>Sair</button>
                   </div>
                 </>
               )}
@@ -197,7 +202,7 @@ function getTitleFor(path: string) {
     '/vehicles': 'Veículos', '/properties': 'Imóveis', '/streams': 'Estratégias de Renda',
     '/catalog': 'Catálogo', '/simulator': 'Simulador', '/hybrid': 'Carteira Híbrida',
     '/saved': 'Minhas Simulações', '/compare': 'BR × EUA', '/ranking': 'Ranking',
-    '/where': 'Onde Investir', '/taxes': 'Impostos', '/glossary': 'Glossário',
+    '/where': 'Onde Investir', '/taxes': 'Impostos', '/glossary': 'Glossário', '/custom-fields': 'Campos Personalizados', '/help': 'Central de Ajuda',
     '/admin': 'Painel Admin', '/admin/users': 'Usuários', '/admin/plans': 'Planos',
     '/settings': 'Configurações', '/upgrade': 'Planos',
     '/dre': 'DRE', '/payroll': 'Folha de Pagamento', '/employees': 'Funcionários',

@@ -5,11 +5,13 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import Layout from './components/Layout';
+import HelpLayout from './components/HelpLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Upgrade from './pages/Upgrade';
 import { usePlan } from './hooks/usePlan';
+import ToastContainer from './components/ToastContainer';
 
 // Páginas PF / Comum
 import Income from './pages/Income';
@@ -29,6 +31,8 @@ import Ranking from './pages/Ranking';
 import Where from './pages/Where';
 import Taxes from './pages/Taxes';
 import Glossary from './pages/Glossary';
+import CustomFields from './pages/CustomFields';
+import Help from './pages/Help';
 
 // Páginas PJ
 import Employees from './pages/pj/Employees';
@@ -84,6 +88,7 @@ const PROTECTED: Array<[string, React.ComponentType, boolean]> = [
 export default function App() {
   return (
     <BrowserRouter>
+      <ToastContainer />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -97,9 +102,16 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/upgrade" element={<Upgrade />} />
+            <Route path="/custom-fields" element={<CustomFields />} />
             {PROTECTED.map(([p, C, gate]) => (
               <Route key={p} path={p} element={gate ? <PlanGate path={p}><C/></PlanGate> : <C/>} />
             ))}
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute />}>
+          <Route element={<HelpLayout />}>
+            <Route path="/help" element={<Help />} />
           </Route>
         </Route>
 

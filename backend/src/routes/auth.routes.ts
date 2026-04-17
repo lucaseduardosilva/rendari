@@ -11,9 +11,15 @@ import { authRequired } from '../middleware/auth.js';
 const router = Router();
 const FRONT = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+const strongPassword = z.string()
+  .min(8, 'Senha mínima 8 caracteres')
+  .regex(/[A-Z]/, 'Deve conter ao menos 1 letra maiúscula')
+  .regex(/\d/, 'Deve conter ao menos 1 número')
+  .regex(/[^A-Za-z0-9]/, 'Deve conter ao menos 1 caractere especial');
+
 const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().email('Email inválido'),
+  password: strongPassword,
   name: z.string().min(2),
   type: z.enum(['PF', 'PJ']),
   documentNumber: z.string().min(11),

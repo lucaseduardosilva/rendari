@@ -5,13 +5,14 @@ import PageHead from '../components/PageHead';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
+import { useOptions } from '../hooks/useOptions';
 
-const CATS = ['Salário','Pró-labore','Freelance','Dividendos','Aluguel','13º / Bônus','Investimentos','Outros'];
 const FREQ = [['monthly','Mensal'],['annual','Anual'],['one-time','Única']] as const;
 
 interface Income { id:string; desc:string; cat:string; freq:string; value:number|string; }
 
 export default function Income() {
+  const CATS = useOptions('income.cat');
   const [items, setItems] = useState<Income[]>([]);
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Income|null>(null);

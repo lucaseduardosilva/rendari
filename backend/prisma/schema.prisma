@@ -71,6 +71,7 @@ model User {
   streams         Stream[]
   streamEntries   StreamEntry[]
   savedSims       SavedSimulation[]
+  customOptions   CustomOption[]
 
   @@index([documentNumber])
   @@index([planId])
@@ -455,6 +456,20 @@ model SavedSimulation {
 }
 
 // ============ AUDITORIA ============
+
+model CustomOption {
+  id        String   @id @default(cuid())
+  userId    String
+  scope     String   // ex: expense.cat, income.cat, asset.cat, vehicle.type
+  value     String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, scope, value])
+  @@index([userId, scope])
+}
 
 model AuditLog {
   id        String   @id @default(cuid())

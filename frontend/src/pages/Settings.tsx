@@ -102,7 +102,21 @@ export default function Settings() {
           <h4 style={{ marginTop: 18, marginBottom: 8 }}>Paleta Light</h4>
           <PaletteEditor palette={wl.paletteLight!} onChange={(k, v) => setPaletteColor('paletteLight', k, v)} />
 
-          <button className="primary" style={{ width: 'auto', marginTop: 12 }} onClick={saveWhitelabel}>Salvar Whitelabel</button>
+          <div style={{ display:'flex', gap:8, marginTop:14, flexWrap:'wrap' }}>
+            <button type="button" className="primary" style={{ width: 'auto', marginTop:0 }} onClick={saveWhitelabel}>Salvar Whitelabel</button>
+            <button type="button" className="secondary" style={{ width: 'auto' }} onClick={async () => {
+              if (!confirm('Resetar TODA a personalização (nome, logo, favicon e paletas)? O sistema voltará ao visual padrão Rendari.')) return;
+              const reset = { brandName: '', logoUrl: '', faviconUrl: '', paletteDark: {}, paletteLight: {} };
+              await api.put('/user/whitelabel', reset);
+              // Limpa CSS vars aplicadas no <html>
+              const root = document.documentElement;
+              ['primary','primary-2','primary2','primary-3','accent','good','bad','warn','bg','bg-elev','bg-2','surface','surface-2','text','text-2','muted','border'].forEach(v => root.style.removeProperty(`--${v}`));
+              applyWl(reset);
+              setWl({ ...wl, ...reset });
+              setMsg('Whitelabel resetado — recarregue a página');
+              setTimeout(() => location.reload(), 1500);
+            }}>↺ Resetar para o padrão</button>
+          </div>
         </div>
       )}
 

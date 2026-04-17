@@ -5,10 +5,12 @@ import PageHead from '../components/PageHead';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
+import { useOptions } from '../hooks/useOptions';
 
 interface Stream { id:string; name:string; type:string; status:string; desc?:string; invest:number|string; ticket:number|string; cost:number|string; freq:number; lifetime:number; fixed:number|string; }
 
 export default function Streams() {
+  const TYPES = useOptions('stream.type');
   const c = useCrud<Stream>('/finance/streams');
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Stream|null>(null);
@@ -83,7 +85,7 @@ export default function Streams() {
           <div className="row">
             <div className="form-group"><label>Tipo</label>
               <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
-                <option>Serviço</option><option>Produto Físico</option><option>Infoproduto</option><option>SaaS / Software</option><option>Aluguel</option><option>Dropshipping</option><option>E-commerce</option><option>Afiliado</option><option>Royalties</option><option>Freelance</option><option>Outros</option>
+                {TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div className="form-group"><label>Status</label>

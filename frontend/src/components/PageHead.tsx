@@ -13,7 +13,7 @@ export default function PageHead({ title, subtitle, actions }: Props) {
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
       </div>
-      {actions && <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>{actions}</div>}
+      {actions && <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>{actions}</div>}
     </div>
   );
 }

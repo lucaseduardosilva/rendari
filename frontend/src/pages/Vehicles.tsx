@@ -5,10 +5,12 @@ import PageHead from '../components/PageHead';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
+import { useOptions } from '../hooks/useOptions';
 
 interface Vehicle { id:string; brand:string; model:string; type?:string; year?:number; plate?:string; color?:string; buy:number|string; current:number|string; km:number; fuel?:string; }
 
 export default function Vehicles() {
+  const TYPES = useOptions('vehicle.type');
   const c = useCrud<Vehicle>('/finance/vehicles');
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Vehicle|null>(null);
@@ -82,7 +84,7 @@ export default function Vehicles() {
           <div className="row">
             <div className="form-group"><label>Tipo</label>
               <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
-                <option>Carro</option><option>Moto</option><option>Caminhonete</option><option>SUV</option><option>Caminhão</option><option>Van</option><option>Bicicleta Elétrica</option><option>Outros</option>
+                {TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div className="form-group"><label>Ano</label><input type="number" min={1950} max={2030} value={form.year} onChange={e=>setForm({...form,year:e.target.value})}/></div>
