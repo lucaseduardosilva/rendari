@@ -6,6 +6,9 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
 import { useOptions } from '../hooks/useOptions';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 const TYPES = [['essencial','Essencial (50%)'],['desejo','Desejo (30%)'],['investimento','Investimento (20%)']] as const;
 const FREQ = [['monthly','Mensal'],['annual','Anual'],['one-time','Única'],['installments','Parcelada (cartão Nx)']] as const;
@@ -42,6 +45,7 @@ export default function Expenses() {
   const [payments, setPayments] = useState<Record<string, boolean>>({});
   const [month, setMonth] = useState(todayYM());
   const [filter, setFilter] = useState<'all'|'essencial'|'desejo'|'investimento'|'paid'|'pending'>('all');
+  const [sort, setSort] = useState<{key: string; dir: 'asc'|'desc'}>({ key: 'desc', dir: 'asc' });
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<Expense|null>(null);
   const [form, setForm] = useState<any>({ desc:'', cat:'Moradia', type:'essencial', freq:'monthly', value:'', day:'', startMonth:todayYM(), installments:4 });
@@ -61,7 +65,29 @@ export default function Expenses() {
   const totalPaid = due.filter(e => payments[`${e.id}|${month}`]).reduce((s, e) => s + e._amt, 0);
   const byType = (t:string) => due.filter(x => x.type === t).reduce((s, x) => s + x._amt, 0);
 
-  const filtered = filter==='all' ? due : filter==='paid' ? due.filter(e => payments[`${e.id}|${month}`]) : filter==='pending' ? due.filter(e => !payments[`${e.id}|${month}`]) : due.filter(e => e.type === filter);
+  const filteredRaw = filter==='all' ? due : filter==='paid' ? due.filter(e => payments[`${e.id}|${month}`]) : filter==='pending' ? due.filter(e => !payments[`${e.id}|${month}`]) : due.filter(e => e.type === filter);
+  const filtered = useMemo(() => {
+    const arr = [...filteredRaw];
+    arr.sort((a, b) => {
+      let av: any, bv: any;
+      switch (sort.key) {
+        case 'paid':  av = payments[`${a.id}|${month}`]?1:0; bv = payments[`${b.id}|${month}`]?1:0; break;
+        case 'desc':  av = a.desc?.toLowerCase()||''; bv = b.desc?.toLowerCase()||''; break;
+        case 'cat':   av = a.cat?.toLowerCase()||''; bv = b.cat?.toLowerCase()||''; break;
+        case 'type':  av = a.type||''; bv = b.type||''; break;
+        case 'day':   av = a.day??99; bv = b.day??99; break;
+        case 'freq':  av = a.freq||''; bv = b.freq||''; break;
+        case 'amt':   av = a._amt; bv = b._amt; break;
+        default:      av = a.desc?.toLowerCase()||''; bv = b.desc?.toLowerCase()||'';
+      }
+      if (av < bv) return sort.dir === 'asc' ? -1 : 1;
+      if (av > bv) return sort.dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filteredRaw, sort, payments, month]);
+
+  const toggleSort = (key: string) => setSort(s => s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' });
 
   const togglePaid = async (id:string) => {
     const key = `${id}|${month}`;
@@ -71,17 +97,20 @@ export default function Expenses() {
   };
   const openNew = () => { setEdit(null); setForm({ desc:'', cat:'Moradia', type:'essencial', freq:'monthly', value:'', day:'', startMonth:todayYM(), installments:4 }); setOpen(true); };
   const openEdit = (e:Expense) => { setEdit(e); setForm({...e, day:e.day||'', startMonth:e.startMonth||todayYM(), installments:e.installments||4}); setOpen(true); };
+  const saveAction = useAsync(async (data:any) => {
+    if (edit) await api.put(`/finance/expenses/${edit.id}`, data); else await api.post('/finance/expenses', data);
+    load();
+  }, { successMsg: 'Despesa salva' });
+  const removeAction = useAsync(async (id:string) => { await api.delete(`/finance/expenses/${id}`); load(); }, { successMsg: 'Removido' });
   const save = async (ev:React.FormEvent) => {
     ev.preventDefault();
-    const data:any = { ...form, value:Number(form.value), day:form.day?Number(form.day):null, installments: form.freq==='installments'?Number(form.installments):null };
-    if (edit) await api.put(`/finance/expenses/${edit.id}`, data);
-    else await api.post('/finance/expenses', data);
-    setOpen(false); load();
+    if (!form.desc?.trim()) { toast('Informe a descrição', 'warn'); return; }
+    if (!Number(form.value)) { toast('Informe um valor válido', 'warn'); return; }
+    const data:any = { ...form, desc:form.desc.trim(), value:Number(form.value), day:form.day?Number(form.day):null, installments: form.freq==='installments'?Number(form.installments):null };
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({ desc:'', cat:'Moradia', type:'essencial', freq:'monthly', value:'', day:'', startMonth:todayYM(), installments:4 }); }
   };
-  const remove = async (id:string) => {
-    if (!confirm('Remover esta despesa?')) return;
-    await api.delete(`/finance/expenses/${id}`); load();
-  };
+  const remove = (id:string) => { if (confirm('Remover esta despesa?')) removeAction.run(id); };
 
   return (
     <div>
@@ -129,7 +158,28 @@ export default function Expenses() {
           <div style={{overflowX:'auto'}}>
             <table style={{width:'100%', borderCollapse:'collapse', fontSize:14}}>
               <thead><tr style={{background:'var(--surface-2)'}}>
-                {['','Descrição','Categoria','Tipo','Vencim.','Frequência','Parcela','Valor','Ações'].map((h,i) => <th key={i} style={th}>{h}</th>)}
+                {([
+                  { label: '', key: 'paid' },
+                  { label: 'Descrição', key: 'desc' },
+                  { label: 'Categoria', key: 'cat' },
+                  { label: 'Tipo', key: 'type' },
+                  { label: 'Vencim.', key: 'day' },
+                  { label: 'Frequência', key: 'freq' },
+                  { label: 'Parcela', key: null },
+                  { label: 'Valor', key: 'amt' },
+                  { label: 'Ações', key: null },
+                ] as const).map((h,i) => (
+                  <th key={i} style={{...th, cursor: h.key ? 'pointer' : 'default', userSelect: 'none'}}
+                    onClick={() => h.key && toggleSort(h.key as string)}
+                    title={h.key ? 'Clique para ordenar' : ''}>
+                    <span style={{display:'inline-flex', alignItems:'center', gap:4}}>
+                      {h.label}
+                      {h.key && sort.key === h.key && (
+                        <span style={{fontSize:10, color:'var(--primary)'}}>{sort.dir === 'asc' ? '▲' : '▼'}</span>
+                      )}
+                    </span>
+                  </th>
+                ))}
               </tr></thead>
               <tbody>{filtered.map(e=>{
                 const paid = !!payments[`${e.id}|${month}`];
@@ -174,7 +224,7 @@ export default function Expenses() {
           <div className="form-group"><label>{form.freq==='installments'?'Valor TOTAL parcelado (R$)':'Valor (R$)'}</label>
             <input type="number" step="0.01" min={0} value={form.value} onChange={e=>setForm({...form,value:e.target.value})} required/></div>
           {form.freq==='installments' && form.value && form.installments && <div style={{fontSize:12, color:'var(--muted)', marginTop:-6, marginBottom:8}}>= {form.installments}x de {fmt(Number(form.value)/Number(form.installments))}/mês</div>}
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

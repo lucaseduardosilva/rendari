@@ -171,10 +171,10 @@ async function ensureCompany(userId: string) {
   return c;
 }
 
-const pjModels = ['employees', 'payrolls', 'invoices', 'costCenters', 'departments'] as const;
+const pjModels = ['employees', 'payrolls', 'invoices', 'costCenters', 'departments', 'contacts'] as const;
 const pjMap: Record<typeof pjModels[number], string> = {
   employees: 'employee', payrolls: 'payroll', invoices: 'invoice',
-  costCenters: 'costCenter', departments: 'department',
+  costCenters: 'costCenter', departments: 'department', contacts: 'contact',
 };
 pjModels.forEach((path) => {
   const m = pjMap[path];

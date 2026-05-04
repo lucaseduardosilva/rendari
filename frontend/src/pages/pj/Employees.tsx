@@ -6,6 +6,10 @@ import PageHead from '../../components/PageHead';
 import Modal from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
 import ExportMenu from '../../components/ExportMenu';
+import DocumentInput from '../../components/DocumentInput';
+import SubmitButton from '../../components/SubmitButton';
+import { useAsync } from '../../hooks/useAsync';
+import { toast } from '../../stores/toast';
 
 interface Employee { id:string; name:string; cpf?:string; role:string; departmentId?:string|null; salary:number|string; benefits?:number|string; admissionAt:string; dismissedAt?:string|null; active:boolean; }
 interface Dept { id:string; name:string; }
@@ -25,9 +29,18 @@ export default function Employees() {
 
   const newE = () => { setEdit(null); setForm({name:'', cpf:'', role:'', departmentId:'', salary:'', benefits:'0', admissionAt:new Date().toISOString().slice(0,10), active:true}); setOpen(true); };
   const editE = (e:Employee) => { setEdit(e); setForm({...e, departmentId:e.departmentId||'', admissionAt:e.admissionAt.slice(0,10), salary:String(e.salary), benefits:String(e.benefits||0)}); setOpen(true); };
-  const save = async (ev:React.FormEvent) => { ev.preventDefault();
+  const saveAction = useAsync(async (data:any) => {
+    if (edit) await c.update(edit.id, data); else await c.create(data);
+  }, { successMsg: 'Funcionário salvo' });
+  const removeAction = useAsync(c.remove, { successMsg: 'Removido' });
+  const save = async (ev:React.FormEvent) => {
+    ev.preventDefault();
+    if (!form.name?.trim()) { toast('Informe o nome', 'warn'); return; }
+    if (!form.role?.trim()) { toast('Informe o cargo', 'warn'); return; }
+    if (!Number(form.salary)) { toast('Informe o salário', 'warn'); return; }
     const data:any = {...form, salary:Number(form.salary), benefits:Number(form.benefits||0), admissionAt:new Date(form.admissionAt).toISOString(), departmentId: form.departmentId || null};
-    edit ? await c.update(edit.id, data) : await c.create(data); setOpen(false);
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({name:'', cpf:'', role:'', departmentId:'', salary:'', benefits:'0', admissionAt:new Date().toISOString().slice(0,10), active:true}); }
   };
 
   return (
@@ -67,7 +80,7 @@ export default function Employees() {
                   <td style={td}><span style={{color:e.active?'var(--good)':'var(--muted)'}}>{e.active?'Ativo':'Demitido'}</span></td>
                   <td style={td}>
                     <button className="ghost" onClick={()=>editE(e)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))c.remove(e.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(e.id);}}>🗑</button>
                   </td>
                 </tr>
               ))}</tbody>
@@ -80,7 +93,7 @@ export default function Employees() {
         <form onSubmit={save}>
           <div className="row">
             <div className="form-group"><label>Nome completo</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required/></div>
-            <div className="form-group"><label>CPF</label><input value={form.cpf} onChange={e=>setForm({...form,cpf:e.target.value})}/></div>
+            <div className="form-group"><label>CPF</label><DocumentInput type="CPF" value={form.cpf} onChange={v=>setForm({...form,cpf:v})}/></div>
           </div>
           <div className="row">
             <div className="form-group"><label>Cargo</label><input value={form.role} onChange={e=>setForm({...form,role:e.target.value})} required placeholder="Ex: Analista de Marketing"/></div>
@@ -101,7 +114,7 @@ export default function Employees() {
               <label className="checkbox-label" style={{display:'flex', alignItems:'center', gap:8}}><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/> Ativo</label>
             </div>
           </div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

@@ -3,6 +3,9 @@ import { api } from '../../lib/api';
 import { fmt } from '../../lib/format';
 import PageHead from '../../components/PageHead';
 import Modal from '../../components/Modal';
+import SubmitButton from '../../components/SubmitButton';
+import { useAsync } from '../../hooks/useAsync';
+import { toast } from '../../stores/toast';
 import { PAGE_INFO, FEATURE_INFO } from '../../lib/pages';
 
 const FEATURE_OPTIONS: Array<[string, string]> = [
@@ -28,10 +31,18 @@ export default function AdminPlans() {
 
   const newP = () => { setEdit(null); setForm({ slug:'', name:'', description:'', priceMonth:0, priceYear:0, visibleFor:'ALL', active:true, sortOrder:plans.length+1, features:{pages:[], maxSavedSimulations:5, support:'community', whitelabel:false, companyTools:false} }); setOpen(true); };
   const editP = (p:any) => { setEdit(p); setForm({...p, features: p.features||{}}); setOpen(true); };
-  const save = async (e:React.FormEvent) => { e.preventDefault();
+  const saveAction = useAsync(async (data:any) => {
+    if (edit) await api.put(`/admin/plans/${edit.id}`, data); else await api.post('/admin/plans', data);
+    load();
+  }, { successMsg: 'Plano salvo' });
+  const removeAction = useAsync(async (id:string) => { await api.delete(`/admin/plans/${id}`); load(); }, { successMsg: 'Plano desativado' });
+  const save = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!form.slug?.trim()) { toast('Informe o slug', 'warn'); return; }
+    if (!form.name?.trim()) { toast('Informe o nome', 'warn'); return; }
     const data = {...form, priceMonth:Number(form.priceMonth), priceYear:Number(form.priceYear), sortOrder:Number(form.sortOrder), features: {...form.features, maxSavedSimulations: Number(form.features.maxSavedSimulations)}};
-    edit ? await api.put(`/admin/plans/${edit.id}`, data) : await api.post('/admin/plans', data);
-    setOpen(false); load();
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({ slug:'', name:'', description:'', priceMonth:0, priceYear:0, visibleFor:'ALL', active:true, sortOrder:plans.length+1, features:{pages:[], maxSavedSimulations:5, support:'community', whitelabel:false, companyTools:false} }); }
   };
   const togglePage = (path:string) => {
     const pages = form.features.pages || [];
@@ -55,7 +66,7 @@ export default function AdminPlans() {
               </div>
               <div>
                 <button className="ghost" onClick={()=>editP(p)}>✏</button>
-                <button className="ghost" onClick={()=>{ if(confirm('Desativar plano?'))api.delete(`/admin/plans/${p.id}`).then(load); }}>🗑</button>
+                <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Desativar plano?'))removeAction.run(p.id); }}>🗑</button>
               </div>
             </div>
             <div style={{marginTop:8, fontSize:13, color:'var(--muted)'}}>{p.description}</div>
@@ -123,7 +134,7 @@ export default function AdminPlans() {
             <input type="checkbox" id="plan-active" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})} style={{width:16, height:16, accentColor:'var(--primary)'}}/>
             <label htmlFor="plan-active" style={{fontSize:13, color:'var(--text)', cursor:'pointer', margin:0}}>Plano ativo (visível para clientes)</label>
           </div>
-          <button type="submit" className="primary" style={{marginTop:12}}>Salvar Plano</button>
+          <SubmitButton type="submit" loading={saveAction.loading} style={{marginTop:12}}>Salvar Plano</SubmitButton>
         </form>
       </Modal>
     </div>

@@ -5,6 +5,11 @@ import PageHead from '../../components/PageHead';
 import Modal from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
 import ExportMenu from '../../components/ExportMenu';
+import DocumentInput from '../../components/DocumentInput';
+import ContactSelect from '../../components/ContactSelect';
+import SubmitButton from '../../components/SubmitButton';
+import { useAsync } from '../../hooks/useAsync';
+import { toast } from '../../stores/toast';
 
 interface Invoice { id:string; number:string; type:'entrada'|'saida'; partyName:string; partyDoc?:string; description?:string; value:number|string; taxes?:number|string; issuedAt:string; status:string; }
 
@@ -30,10 +35,21 @@ export default function Invoices() {
 
   const newI = () => { setEdit(null); setForm({number:'', type:'saida', partyName:'', partyDoc:'', description:'', value:'', taxes:'', issuedAt:todayDate(), status:'emitida'}); setOpen(true); };
   const editI = (i:Invoice) => { setEdit(i); setForm({...i, value:String(i.value), taxes:String(i.taxes||''), issuedAt:i.issuedAt.slice(0,10), partyDoc:i.partyDoc||'', description:i.description||''}); setOpen(true); };
-  const save = async (e:React.FormEvent) => { e.preventDefault();
+
+  const saveAction = useAsync(async (data: any) => {
+    if (edit) await c.update(edit.id, data); else await c.create(data);
+  }, { successMsg: 'Nota fiscal salva' });
+  const save = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!form.number?.trim()) { toast('Informe o número da NF', 'warn'); return; }
+    if (!form.partyName?.trim()) { toast('Informe o cliente/fornecedor', 'warn'); return; }
+    if (!Number(form.value)) { toast('Informe um valor válido', 'warn'); return; }
+    if (!form.issuedAt) { toast('Informe a data de emissão', 'warn'); return; }
     const data = {...form, value:Number(form.value), taxes:Number(form.taxes||0), issuedAt:new Date(form.issuedAt).toISOString()};
-    edit ? await c.update(edit.id, data) : await c.create(data); setOpen(false);
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({number:'', type:'saida', partyName:'', partyDoc:'', description:'', value:'', taxes:'', issuedAt:todayDate(), status:'emitida'}); }
   };
+  const removeAction = useAsync(c.remove, { successMsg: 'Removido' });
 
   return (
     <div>
@@ -85,7 +101,7 @@ export default function Invoices() {
                   <td style={td}>{i.status}</td>
                   <td style={td}>
                     <button className="ghost" onClick={()=>editI(i)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))c.remove(i.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(i.id);}}>🗑</button>
                   </td>
                 </tr>
               ))}</tbody>
@@ -100,9 +116,17 @@ export default function Invoices() {
             <div className="form-group"><label>Número</label><input value={form.number} onChange={e=>setForm({...form,number:e.target.value})} required placeholder="000123"/></div>
             <div className="form-group"><label>Tipo</label><select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option value="saida">Saída (venda)</option><option value="entrada">Entrada (compra)</option></select></div>
           </div>
-          <div className="row">
-            <div className="form-group"><label>Cliente / Fornecedor</label><input value={form.partyName} onChange={e=>setForm({...form,partyName:e.target.value})} required/></div>
-            <div className="form-group"><label>CPF/CNPJ</label><input value={form.partyDoc} onChange={e=>setForm({...form,partyDoc:e.target.value})}/></div>
+          <div className="form-group"><label>{form.type==='saida'?'Cliente':'Fornecedor'}</label>
+            <ContactSelect
+              name={form.partyName}
+              doc={form.partyDoc}
+              filterType={form.type==='saida'?'CLIENT':'SUPPLIER'}
+              onChange={({ name, document }) => setForm({...form, partyName: name, partyDoc: document || form.partyDoc})}
+              required
+            />
+          </div>
+          <div className="form-group"><label>CPF/CNPJ</label>
+            <DocumentInput value={form.partyDoc} onChange={v=>setForm({...form,partyDoc:v})}/>
           </div>
           <div className="form-group"><label>Descrição</label><input value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Produto/serviço"/></div>
           <div className="row">
@@ -113,7 +137,7 @@ export default function Invoices() {
             <div className="form-group"><label>Data Emissão</label><input type="date" value={form.issuedAt} onChange={e=>setForm({...form,issuedAt:e.target.value})} required/></div>
             <div className="form-group"><label>Status</label><select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option>emitida</option><option>paga</option><option>cancelada</option></select></div>
           </div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

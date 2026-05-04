@@ -4,6 +4,9 @@ import { fmt } from '../lib/format';
 import PageHead from '../components/PageHead';
 import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 const ICONS = ['🎯','🛟','🏠','🚗','✈️','🎓','💍','👶','🏖️','💻','💼'];
 
@@ -17,9 +20,15 @@ export default function Goals() {
 
   const newG = () => { setEdit(null); setForm({name:'', icon:'🎯', target:'', current:'0', months:12}); setOpen(true); };
   const editG = (g:Goal) => { setEdit(g); setForm({name:g.name, icon:g.icon, target:String(g.target), current:String(g.current), months:g.months}); setOpen(true); };
-  const save = async (e:React.FormEvent) => { e.preventDefault();
-    const data = {...form, target:Number(form.target), current:Number(form.current), months:Number(form.months)};
-    edit ? await c.update(edit.id, data) : await c.create(data); setOpen(false);
+  const saveAction = useAsync(async (data:any) => { edit ? await c.update(edit.id, data) : await c.create(data); }, { successMsg:'Meta salva' });
+  const removeAction = useAsync(c.remove, { successMsg:'Meta removida' });
+  const save = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name?.trim()) { toast('Informe o nome da meta', 'warn'); return; }
+    if (!Number(form.target)) { toast('Informe um valor alvo', 'warn'); return; }
+    const data = {...form, name:form.name.trim(), target:Number(form.target), current:Number(form.current), months:Number(form.months)};
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({name:'', icon:'🎯', target:'', current:'0', months:12}); }
   };
 
   return (
@@ -43,7 +52,7 @@ export default function Goals() {
                   <h3 style={{fontSize:'1.05rem', margin:0}}>{g.icon} {g.name}</h3>
                   <div>
                     <button className="ghost" onClick={()=>editG(g)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))c.remove(g.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(g.id);}}>🗑</button>
                   </div>
                 </div>
                 <div style={{display:'flex', justifyContent:'space-between', alignItems:'baseline', margin:'8px 0'}}>
@@ -76,7 +85,7 @@ export default function Goals() {
             <div className="form-group"><label>Já acumulado</label><input type="number" step="0.01" min={0} value={form.current} onChange={e=>setForm({...form,current:e.target.value})}/></div>
           </div>
           <div className="form-group"><label>Prazo (meses)</label><input type="number" min={1} value={form.months} onChange={e=>setForm({...form,months:Number(e.target.value)})}/></div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

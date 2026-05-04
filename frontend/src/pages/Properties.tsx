@@ -6,6 +6,9 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
 import { useOptions } from '../hooks/useOptions';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 interface Property { id:string; name:string; type:string; purpose:string; addr?:string; area?:number|string; rooms?:number; buy:number|string; current:number|string; debt:number|string; rent:number|string; }
 const PURPOSE = [['residence','Moradia'],['rental','Aluguel'],['sale','Venda futura'],['vacation','Veraneio'],['commercial','Comercial']] as const;
@@ -24,9 +27,14 @@ export default function Properties() {
 
   const newP = () => { setEdit(null); setForm({name:'', type:'Apartamento', purpose:'residence', addr:'', area:'', rooms:'', buy:'', current:'', debt:'0', rent:'0'}); setOpen(true); };
   const editP = (p:Property) => { setEdit(p); setForm({...p, area:p.area||'', rooms:p.rooms||'', addr:p.addr||''}); setOpen(true); };
-  const save = async (e:React.FormEvent) => { e.preventDefault();
-    const data = {...form, area:Number(form.area)||0, rooms:Number(form.rooms)||0, buy:Number(form.buy), current:Number(form.current), debt:Number(form.debt), rent:Number(form.rent)};
-    edit ? await c.update(edit.id, data) : await c.create(data); setOpen(false);
+  const saveAction = useAsync(async (data:any) => { edit ? await c.update(edit.id, data) : await c.create(data); }, { successMsg:'Imóvel salvo' });
+  const removeAction = useAsync(c.remove, { successMsg:'Removido' });
+  const save = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name?.trim()) { toast('Informe o nome', 'warn'); return; }
+    const data = {...form, name:form.name.trim(), area:Number(form.area)||0, rooms:Number(form.rooms)||0, buy:Number(form.buy), current:Number(form.current), debt:Number(form.debt), rent:Number(form.rent)};
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({name:'', type:'Apartamento', purpose:'residence', addr:'', area:'', rooms:'', buy:'', current:'', debt:'0', rent:'0'}); }
   };
 
   return (
@@ -67,7 +75,7 @@ export default function Properties() {
                   </div>
                   <div>
                     <button className="ghost" onClick={()=>editP(p)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))c.remove(p.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(p.id);}}>🗑</button>
                   </div>
                 </div>
                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:10}}>
@@ -110,7 +118,7 @@ export default function Properties() {
             <div className="form-group"><label>Saldo Financ. (R$)</label><input type="number" step="0.01" value={form.debt} onChange={e=>setForm({...form,debt:e.target.value})}/></div>
             <div className="form-group"><label>Aluguel Mensal (R$)</label><input type="number" step="0.01" value={form.rent} onChange={e=>setForm({...form,rent:e.target.value})}/></div>
           </div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

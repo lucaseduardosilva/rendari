@@ -6,6 +6,9 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
 import { useOptions } from '../hooks/useOptions';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 interface Stream { id:string; name:string; type:string; status:string; desc?:string; invest:number|string; ticket:number|string; cost:number|string; freq:number; lifetime:number; fixed:number|string; }
 
@@ -18,9 +21,14 @@ export default function Streams() {
 
   const newS = () => { setEdit(null); setForm({name:'', type:'Serviço', status:'active', desc:'', invest:'0', ticket:'', cost:'0', freq:1, lifetime:12, fixed:'0'}); setOpen(true); };
   const editS = (s:Stream) => { setEdit(s); setForm(s); setOpen(true); };
-  const save = async (e:React.FormEvent) => { e.preventDefault();
-    const data = {...form, invest:Number(form.invest), ticket:Number(form.ticket), cost:Number(form.cost), freq:Number(form.freq), lifetime:Number(form.lifetime), fixed:Number(form.fixed)};
-    edit ? await c.update(edit.id, data) : await c.create(data); setOpen(false);
+  const saveAction = useAsync(async (data:any) => { edit ? await c.update(edit.id, data) : await c.create(data); }, { successMsg:'Estratégia salva' });
+  const removeAction = useAsync(c.remove, { successMsg:'Removido' });
+  const save = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name?.trim()) { toast('Informe o nome', 'warn'); return; }
+    const data = {...form, name:form.name.trim(), invest:Number(form.invest), ticket:Number(form.ticket), cost:Number(form.cost), freq:Number(form.freq), lifetime:Number(form.lifetime), fixed:Number(form.fixed)};
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({name:'', type:'Serviço', status:'active', desc:'', invest:'0', ticket:'', cost:'0', freq:1, lifetime:12, fixed:'0'}); }
   };
 
   const calcLTV = (s:Stream) => {
@@ -64,7 +72,7 @@ export default function Streams() {
                   </div>
                   <div>
                     <button className="ghost" onClick={()=>editS(s)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))c.remove(s.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(s.id);}}>🗑</button>
                   </div>
                 </div>
                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:10}}>
@@ -107,7 +115,7 @@ export default function Streams() {
             <div className="form-group"><label>Frequência (meses)</label><input type="number" min={1} value={form.freq} onChange={e=>setForm({...form,freq:e.target.value})}/></div>
             <div className="form-group"><label>Lifetime (meses)</label><input type="number" min={1} value={form.lifetime} onChange={e=>setForm({...form,lifetime:e.target.value})}/></div>
           </div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

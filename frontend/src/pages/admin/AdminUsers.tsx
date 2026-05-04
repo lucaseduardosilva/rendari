@@ -6,6 +6,7 @@ import Modal from '../../components/Modal';
 import Dropdown from '../../components/Dropdown';
 import PasswordInput from '../../components/PasswordInput';
 import ExportMenu from '../../components/ExportMenu';
+import DocumentInput from '../../components/DocumentInput';
 import { fmtDate } from '../../lib/format';
 import { useAuth } from '../../stores/auth';
 import { useImpersonate } from '../../stores/impersonate';
@@ -140,9 +141,14 @@ function EditUserModal({ user, plans, onClose, onSaved }: { user: any; plans: an
       if (!data.password) delete data.password;
       if (!data.planId) data.planId = null;
       await api.put(`/admin/users/${user.id}`, data);
+      const { toast } = await import('../../stores/toast');
+      toast('Usuário atualizado', 'success');
       onSaved();
     } catch (e: any) {
-      setErr(e.response?.data?.error || 'Erro ao salvar');
+      const msg = e.response?.data?.error || 'Erro ao salvar';
+      setErr(msg);
+      const { toast } = await import('../../stores/toast');
+      toast(msg, 'error', 5000);
     } finally { setSaving(false); }
   };
 
@@ -165,7 +171,7 @@ function EditUserModal({ user, plans, onClose, onSaved }: { user: any; plans: an
               </select>
             </div>
           </div>
-          <div className="form-group"><label>{form.type==='PJ'?'CNPJ':'CPF'}</label><input value={form.documentNumber} onChange={e=>setForm({...form,documentNumber:e.target.value})}/></div>
+          <div className="form-group"><label>{form.type==='PJ'?'CNPJ':'CPF'}</label><DocumentInput type={form.type==='PJ'?'CNPJ':'CPF'} value={form.documentNumber} onChange={v=>setForm({...form,documentNumber:v})}/></div>
         </Section>
 
         <Section title="Acesso & Plano">

@@ -6,6 +6,9 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
 import { useOptions } from '../hooks/useOptions';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 interface Asset { id:string; name:string; cat:string; value:number|string; }
 interface Debt { id:string; name:string; cat:string; value:number|string; rate:number|string; }
@@ -28,15 +31,25 @@ export default function Patrimony() {
 
   const newA = () => { setEditA(null); setFormA({name:'', cat:'Conta Corrente', value:''}); setOpenA(true); };
   const editAsset = (x:Asset) => { setEditA(x); setFormA({name:x.name, cat:x.cat, value:String(x.value)}); setOpenA(true); };
+  const saveAssetAction = useAsync(async (data:any) => { editA ? await a.update(editA.id, data) : await a.create(data); }, { successMsg:'Ativo salvo' });
+  const removeAssetAction = useAsync(a.remove, { successMsg:'Ativo removido' });
   const saveA = async (e:React.FormEvent) => { e.preventDefault();
-    const data = {...formA, value:Number(formA.value)};
-    editA ? await a.update(editA.id, data) : await a.create(data); setOpenA(false);
+    if (!formA.name?.trim()) { toast('Informe o nome', 'warn'); return; }
+    if (!Number(formA.value)) { toast('Informe um valor', 'warn'); return; }
+    const data = {...formA, name:formA.name.trim(), value:Number(formA.value)};
+    const ok = await saveAssetAction.run(data);
+    if (ok) { setOpenA(false); setEditA(null); setFormA({name:'', cat:'Conta Corrente', value:''}); }
   };
   const newD = () => { setEditD(null); setFormD({name:'', cat:'Cartão de Crédito', value:'', rate:''}); setOpenD(true); };
   const editDebt = (x:Debt) => { setEditD(x); setFormD({name:x.name, cat:x.cat, value:String(x.value), rate:String(x.rate)}); setOpenD(true); };
+  const saveDebtAction = useAsync(async (data:any) => { editD ? await d.update(editD.id, data) : await d.create(data); }, { successMsg:'Dívida salva' });
+  const removeDebtAction = useAsync(d.remove, { successMsg:'Dívida removida' });
   const saveD = async (e:React.FormEvent) => { e.preventDefault();
-    const data = {...formD, value:Number(formD.value), rate:Number(formD.rate)};
-    editD ? await d.update(editD.id, data) : await d.create(data); setOpenD(false);
+    if (!formD.name?.trim()) { toast('Informe o nome', 'warn'); return; }
+    if (!Number(formD.value)) { toast('Informe um valor', 'warn'); return; }
+    const data = {...formD, name:formD.name.trim(), value:Number(formD.value), rate:Number(formD.rate)};
+    const ok = await saveDebtAction.run(data);
+    if (ok) { setOpenD(false); setEditD(null); setFormD({name:'', cat:'Cartão de Crédito', value:'', rate:''}); }
   };
 
   return (
@@ -73,7 +86,7 @@ export default function Patrimony() {
                   <td style={{padding:'8px 0', textAlign:'right', fontFamily:'JetBrains Mono,monospace', color:'var(--good)'}}>{fmt(Number(x.value))}</td>
                   <td style={{padding:'8px 0', textAlign:'right', width:80}}>
                     <button className="ghost" onClick={()=>editAsset(x)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))a.remove(x.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeAssetAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAssetAction.run(x.id);}}>🗑</button>
                   </td>
                 </tr>
               ))}</tbody>
@@ -91,7 +104,7 @@ export default function Patrimony() {
                   <td style={{padding:'8px 0', textAlign:'right', fontFamily:'JetBrains Mono,monospace', color:'var(--bad)'}}>{fmt(Number(x.value))}</td>
                   <td style={{padding:'8px 0', textAlign:'right', width:80}}>
                     <button className="ghost" onClick={()=>editDebt(x)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))d.remove(x.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeDebtAction.loading} onClick={()=>{ if(confirm('Remover?'))removeDebtAction.run(x.id);}}>🗑</button>
                   </td>
                 </tr>
               ))}</tbody>
@@ -105,7 +118,7 @@ export default function Patrimony() {
           <div className="form-group"><label>Nome</label><input value={formA.name} onChange={e=>setFormA({...formA,name:e.target.value})} required/></div>
           <div className="form-group"><label>Categoria</label><select value={formA.cat} onChange={e=>setFormA({...formA,cat:e.target.value})}>{ASSET_CATS.map(c=><option key={c}>{c}</option>)}</select></div>
           <div className="form-group"><label>Valor (R$)</label><input type="number" step="0.01" min={0} value={formA.value} onChange={e=>setFormA({...formA,value:e.target.value})} required/></div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAssetAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
       <Modal open={openD} onClose={()=>setOpenD(false)} title={editD?'Editar Dívida':'Nova Dívida'}>
@@ -116,7 +129,7 @@ export default function Patrimony() {
             <div className="form-group"><label>Saldo Devedor (R$)</label><input type="number" step="0.01" min={0} value={formD.value} onChange={e=>setFormD({...formD,value:e.target.value})} required/></div>
             <div className="form-group"><label>Juros a.m. (%)</label><input type="number" step="0.01" min={0} value={formD.rate} onChange={e=>setFormD({...formD,rate:e.target.value})}/></div>
           </div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveDebtAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

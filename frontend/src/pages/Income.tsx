@@ -6,6 +6,9 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
 import { useOptions } from '../hooks/useOptions';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 const FREQ = [['monthly','Mensal'],['annual','Anual'],['one-time','Única']] as const;
 
@@ -28,17 +31,22 @@ export default function Income() {
 
   const openNew = () => { setEdit(null); setForm({ desc:'', cat:'Salário', freq:'monthly', value:'' }); setOpen(true); };
   const openEdit = (i:Income) => { setEdit(i); setForm(i); setOpen(true); };
+
+  const saveAction = useAsync(async (data:any) => {
+    if (edit) await api.put(`/finance/incomes/${edit.id}`, data); else await api.post('/finance/incomes', data);
+    load();
+  }, { successMsg: 'Receita salva' });
+  const removeAction = useAsync(async (id:string) => { await api.delete(`/finance/incomes/${id}`); load(); }, { successMsg: 'Removido' });
+
   const save = async (e:React.FormEvent) => {
     e.preventDefault();
-    const data = { ...form, value: Number(form.value) };
-    if (edit) await api.put(`/finance/incomes/${edit.id}`, data);
-    else await api.post('/finance/incomes', data);
-    setOpen(false); load();
+    if (!form.desc?.trim()) { toast('Informe a descrição', 'warn'); return; }
+    if (!Number(form.value)) { toast('Informe um valor válido', 'warn'); return; }
+    const data = { ...form, desc: form.desc.trim(), value: Number(form.value) };
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({ desc:'', cat:'Salário', freq:'monthly', value:'' }); }
   };
-  const remove = async (id:string) => {
-    if (!confirm('Remover esta receita?')) return;
-    await api.delete(`/finance/incomes/${id}`); load();
-  };
+  const remove = (id:string) => { if (confirm('Remover esta receita?')) removeAction.run(id); };
 
   return (
     <div>
@@ -104,7 +112,7 @@ export default function Income() {
           </div>
           <div className="form-group"><label>Valor (R$)</label>
             <input type="number" step="0.01" min="0" value={form.value} onChange={e=>setForm({...form, value:e.target.value})} required/></div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

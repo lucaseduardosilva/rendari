@@ -112,7 +112,7 @@ export default function Settings() {
               const root = document.documentElement;
               ['primary','primary-2','primary2','primary-3','accent','good','bad','warn','bg','bg-elev','bg-2','surface','surface-2','text','text-2','muted','border'].forEach(v => root.style.removeProperty(`--${v}`));
               applyWl(reset);
-              setWl({ ...wl, ...reset });
+              setWl({ ...wl, ...reset } as any);
               setMsg('Whitelabel resetado — recarregue a página');
               setTimeout(() => location.reload(), 1500);
             }}>↺ Resetar para o padrão</button>

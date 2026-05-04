@@ -4,6 +4,9 @@ import { fmt } from '../../lib/format';
 import PageHead from '../../components/PageHead';
 import Modal from '../../components/Modal';
 import EmptyState from '../../components/EmptyState';
+import SubmitButton from '../../components/SubmitButton';
+import { useAsync } from '../../hooks/useAsync';
+import { toast } from '../../stores/toast';
 
 interface CC { id:string; name:string; code?:string; budget?:number|string; active:boolean; }
 
@@ -15,9 +18,16 @@ export default function CostCenters() {
 
   const newCC = () => { setEdit(null); setForm({name:'', code:'', budget:'', active:true}); setOpen(true); };
   const editCC = (x:CC) => { setEdit(x); setForm({name:x.name, code:x.code||'', budget:String(x.budget||''), active:x.active}); setOpen(true); };
-  const save = async (e:React.FormEvent) => { e.preventDefault();
-    const data = {...form, budget:Number(form.budget)||0};
-    edit ? await c.update(edit.id, data) : await c.create(data); setOpen(false);
+  const saveAction = useAsync(async (data:any) => {
+    if (edit) await c.update(edit.id, data); else await c.create(data);
+  }, { successMsg: 'Centro de custo salvo' });
+  const removeAction = useAsync(c.remove, { successMsg: 'Removido' });
+  const save = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name.trim()) { toast('Informe o nome', 'warn'); return; }
+    const data = {...form, name:form.name.trim(), code:form.code.trim()||null, budget:Number(form.budget)||0};
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({name:'', code:'', budget:'', active:true}); }
   };
 
   const totalBudget = c.items.reduce((s, x) => s + Number(x.budget || 0), 0);
@@ -45,7 +55,7 @@ export default function CostCenters() {
                 <td style={td}><span style={{color: x.active?'var(--good)':'var(--muted)'}}>{x.active?'Ativo':'Inativo'}</span></td>
                 <td style={td}>
                   <button className="ghost" onClick={()=>editCC(x)}>✏</button>
-                  <button className="ghost" onClick={()=>{ if(confirm('Remover?'))c.remove(x.id);}}>🗑</button>
+                  <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(x.id);}}>🗑</button>
                 </td>
               </tr>
             ))}</tbody>
@@ -61,7 +71,7 @@ export default function CostCenters() {
             <div className="form-group"><label>Orçamento Mensal (R$)</label><input type="number" step="0.01" min={0} value={form.budget} onChange={e=>setForm({...form,budget:e.target.value})}/></div>
           </div>
           <label className="checkbox-label" style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}><input type="checkbox" checked={form.active} onChange={e=>setForm({...form,active:e.target.checked})}/> Ativo</label>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

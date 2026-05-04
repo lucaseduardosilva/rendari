@@ -149,6 +149,30 @@ model Company {
   invoices        Invoice[]
   costCenters     CostCenter[]
   departments     Department[]
+  contacts        Contact[]
+}
+
+model Contact {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String   // Razão social ou nome
+  tradeName String?  // Nome fantasia (opcional)
+  document  String?  // CPF ou CNPJ (sem máscara)
+  type      String   @default("BOTH") // CLIENT | SUPPLIER | BOTH
+  email     String?
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, type])
+  @@index([companyId, name])
 }
 
 model Employee {

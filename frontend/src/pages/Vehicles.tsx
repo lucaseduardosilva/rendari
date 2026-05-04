@@ -6,6 +6,9 @@ import Modal from '../components/Modal';
 import EmptyState from '../components/EmptyState';
 import ExportMenu from '../components/ExportMenu';
 import { useOptions } from '../hooks/useOptions';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 interface Vehicle { id:string; brand:string; model:string; type?:string; year?:number; plate?:string; color?:string; buy:number|string; current:number|string; km:number; fuel?:string; }
 
@@ -21,9 +24,14 @@ export default function Vehicles() {
 
   const newV = () => { setEdit(null); setForm({brand:'', model:'', type:'Carro', year:'', plate:'', color:'', buy:'', current:'', km:0, fuel:'Flex'}); setOpen(true); };
   const editV = (v:Vehicle) => { setEdit(v); setForm({...v, year:v.year||'', plate:v.plate||'', color:v.color||''}); setOpen(true); };
-  const save = async (e:React.FormEvent) => { e.preventDefault();
-    const data = {...form, year:form.year?Number(form.year):null, buy:Number(form.buy), current:Number(form.current), km:Number(form.km)};
-    edit ? await c.update(edit.id, data) : await c.create(data); setOpen(false);
+  const saveAction = useAsync(async (data:any) => { edit ? await c.update(edit.id, data) : await c.create(data); }, { successMsg:'Veículo salvo' });
+  const removeAction = useAsync(c.remove, { successMsg:'Removido' });
+  const save = async (e:React.FormEvent) => {
+    e.preventDefault();
+    if (!form.brand?.trim() || !form.model?.trim()) { toast('Informe marca e modelo', 'warn'); return; }
+    const data = {...form, brand:form.brand.trim(), model:form.model.trim(), year:form.year?Number(form.year):null, buy:Number(form.buy), current:Number(form.current), km:Number(form.km)};
+    const ok = await saveAction.run(data);
+    if (ok) { setOpen(false); setEdit(null); setForm({brand:'', model:'', type:'Carro', year:'', plate:'', color:'', buy:'', current:'', km:0, fuel:'Flex'}); }
   };
 
   return (
@@ -60,7 +68,7 @@ export default function Vehicles() {
                   </div>
                   <div>
                     <button className="ghost" onClick={()=>editV(v)}>✏</button>
-                    <button className="ghost" onClick={()=>{ if(confirm('Remover?'))c.remove(v.id);}}>🗑</button>
+                    <button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(v.id);}}>🗑</button>
                   </div>
                 </div>
                 <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:10}}>
@@ -102,7 +110,7 @@ export default function Vehicles() {
             <div className="form-group"><label>Valor Atual FIPE (R$)</label><input type="number" step="0.01" value={form.current} onChange={e=>setForm({...form,current:e.target.value})}/></div>
           </div>
           <div className="form-group"><label>Km Atual</label><input type="number" min={0} value={form.km} onChange={e=>setForm({...form,km:e.target.value})}/></div>
-          <button type="submit" className="primary">Salvar</button>
+          <SubmitButton type="submit" loading={saveAction.loading}>Salvar</SubmitButton>
         </form>
       </Modal>
     </div>

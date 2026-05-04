@@ -24,6 +24,8 @@ export const PAGE_INFO: Record<string, { name: string; group: string; pjOnly?: b
   '/payroll': { name: 'Folha de Pagamento', group: 'Empresa (PJ)', pjOnly: true },
   '/employees': { name: 'Funcionários', group: 'Empresa (PJ)', pjOnly: true },
   '/invoices': { name: 'Notas Fiscais', group: 'Empresa (PJ)', pjOnly: true },
+  '/contacts': { name: 'Clientes & Fornecedores', group: 'Empresa (PJ)', pjOnly: true },
+  '/company': { name: 'Dados da Empresa', group: 'Empresa (PJ)', pjOnly: true },
   '/cost-centers': { name: 'Centros de Custo', group: 'Empresa (PJ)', pjOnly: true },
   '/departments': { name: 'Departamentos', group: 'Empresa (PJ)', pjOnly: true },
   '/business-taxes': { name: 'Impostos PJ (Simples/Presumido/Real)', group: 'Empresa (PJ)', pjOnly: true },

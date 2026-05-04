@@ -43,6 +43,8 @@ import Invoices from './pages/pj/Invoices';
 import BusinessTaxes from './pages/pj/Taxes';
 import DRE from './pages/pj/DRE';
 import CashFlow from './pages/pj/CashFlow';
+import Company from './pages/pj/Company';
+import Contacts from './pages/pj/Contacts';
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -83,6 +85,8 @@ const PROTECTED: Array<[string, React.ComponentType, boolean]> = [
   ['/business-taxes', BusinessTaxes, true],
   ['/dre', DRE, true],
   ['/cashflow', CashFlow, true],
+  ['/company', Company, true],
+  ['/contacts', Contacts, true],
 ];
 
 export default function App() {

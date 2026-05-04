@@ -3,6 +3,9 @@ import { api } from '../lib/api';
 import { fmt } from '../lib/format';
 import PageHead from '../components/PageHead';
 import EmptyState from '../components/EmptyState';
+import SubmitButton from '../components/SubmitButton';
+import { useAsync } from '../hooks/useAsync';
+import { toast } from '../stores/toast';
 
 export default function Plan() {
   const [allocs, setAllocs] = useState<any[]>([]);
@@ -14,10 +17,16 @@ export default function Plan() {
     .then(([a, s]) => { setAllocs(a.data); setSaved(s.data); });
   useEffect(() => { load(); }, []);
 
+  const createAction = useAsync(async (data:any) => {
+    await api.post('/finance/allocations', data); load();
+  }, { successMsg: 'Vínculo criado' });
+  const removeAction = useAsync(async (id:string) => { await api.delete(`/finance/allocations/${id}`); load(); }, { successMsg: 'Removido' });
+
   const create = async () => {
-    if (!form.savedId) return alert('Selecione uma simulação salva');
-    await api.post('/finance/allocations', { ...form, value:Number(form.value) });
-    setOpen(false); setForm({savedId:'', mode:'fixed', value:''}); load();
+    if (!form.savedId) { toast('Selecione uma simulação salva', 'warn'); return; }
+    if (!Number(form.value)) { toast('Informe um valor', 'warn'); return; }
+    const ok = await createAction.run({ ...form, value:Number(form.value) });
+    if (ok) { setOpen(false); setForm({savedId:'', mode:'fixed', value:''}); }
   };
 
   return (
@@ -36,7 +45,7 @@ export default function Plan() {
                   <td style={td}>{s?s.name:'?'}</td>
                   <td style={td}>{a.mode==='fixed'?'Valor fixo':a.mode==='pct'?'% sobra':'% salário'}</td>
                   <td style={tdMono}>{a.mode==='fixed'?fmt(Number(a.value)):Number(a.value).toFixed(1)+'%'}</td>
-                  <td style={td}><button className="ghost" onClick={()=>{ if(confirm('Remover?'))api.delete(`/finance/allocations/${a.id}`).then(load); }}>🗑</button></td>
+                  <td style={td}><button className="ghost" disabled={removeAction.loading} onClick={()=>{ if(confirm('Remover?'))removeAction.run(a.id); }}>🗑</button></td>
                 </tr>
               );
             })}</tbody>
@@ -62,7 +71,7 @@ export default function Plan() {
               </select>
             </div>
             <div className="form-group"><label>Valor ({form.mode==='fixed'?'R$':'%'})</label><input type="number" step="0.01" value={form.value} onChange={e=>setForm({...form,value:e.target.value})}/></div>
-            <button className="primary" onClick={create}>Salvar</button>
+            <SubmitButton loading={createAction.loading} onClick={create}>Salvar</SubmitButton>
           </div>
         </div>
       )}
