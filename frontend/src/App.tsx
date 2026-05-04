@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -91,7 +91,7 @@ const PROTECTED: Array<[string, React.ComponentType, boolean]> = [
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ToastContainer />
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -129,6 +129,6 @@ export default function App() {
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

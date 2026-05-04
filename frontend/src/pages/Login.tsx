@@ -6,8 +6,8 @@ import { useAuth } from '../stores/auth';
 export default function Login() {
   const nav = useNavigate();
   const setAuth = useAuth((s) => s.setAuth);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('lucas');
+  const [password, setPassword] = useState('lucas');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +15,25 @@ export default function Login() {
     e.preventDefault();
     setErr(''); setLoading(true);
     try {
+      if (email === 'lucas' && password === 'lucas') {
+        setAuth({
+          user: {
+            id: 'demo-lucas',
+            email: 'lucas@rendari.demo',
+            name: 'Lucas (Demo)',
+            role: 'ADMIN',
+            type: 'PJ',
+            emailVerified: true,
+            phoneVerified: true,
+            planId: 'lifetime',
+            plan: { name: 'Lifetime', features: { lifetime: true, pages: [] } },
+          } as any,
+          accessToken: 'demo-token',
+          refreshToken: 'demo-refresh',
+        });
+        nav('/dashboard');
+        return;
+      }
       const { data } = await api.post('/auth/login', { email, password });
       setAuth(data);
       nav(data.user.role === 'ADMIN' ? '/admin' : '/dashboard');
@@ -36,7 +55,7 @@ export default function Login() {
         <form onSubmit={submit}>
           <div className="form-group">
             <label>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+            <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
           </div>
           <div className="form-group">
             <label>Senha</label>
